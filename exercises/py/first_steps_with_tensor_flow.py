@@ -53,14 +53,17 @@ pd.options.display.float_format = '{:.1f}'.format
 #  接下来，我们将加载数据集。
 
 # %%
-california_housing_dataframe = pd.read_csv("py/california_housing_train.csv", sep=",")
+california_housing_dataframe = pd.read_csv(
+    "py/california_housing_train.csv", sep=",")
 
 # %% [markdown]
 #  我们将对数据进行随机化处理，以确保不会出现任何病态排序结果（可能会损害随机梯度下降法的效果）。此外，我们会将 `median_house_value` 调整为以千为单位，这样，模型就能够以常用范围内的学习速率较为轻松地学习这些数据。
 
 # %%
+# 打乱数据的顺序
 california_housing_dataframe = california_housing_dataframe.reindex(
     np.random.permutation(california_housing_dataframe.index))
+# 房屋中值价格变为“千元”
 california_housing_dataframe["median_house_value"] /= 1000.0
 california_housing_dataframe
 
@@ -97,10 +100,11 @@ california_housing_dataframe.describe()
 
 # %%
 # Define the input feature: total_rooms.
+# 拟合输入
 my_feature = california_housing_dataframe[["total_rooms"]]
 
 # Configure a numeric feature column for total_rooms.
-# feature_columns = [tf.feature_column.numeric_column("total_rooms")]
+# tf用的，只有定义，没有数值，不知道干什么用的
 feature_columns = [tf.feature_column.numeric_column("total_rooms")]
 # %% [markdown]
 #  **注意**：`total_rooms` 数据的形状是一维数组（每个街区的房间总数列表）。这是 `numeric_column` 的默认形状，因此我们不必将其作为参数传递。
@@ -111,6 +115,7 @@ feature_columns = [tf.feature_column.numeric_column("total_rooms")]
 
 # %%
 # Define the label.
+# 拟合目标
 targets = california_housing_dataframe["median_house_value"]
 # %% [markdown]
 #  ### 第 3 步：配置 LinearRegressor
@@ -122,6 +127,7 @@ targets = california_housing_dataframe["median_house_value"]
 # %%
 # Use gradient descent as the optimizer for training the model.
 my_optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.0000001)
+# 使用 tf.contrib 类中的梯度裁剪，防止发生梯度爆炸
 my_optimizer = tf.contrib.estimator.clip_gradients_by_norm(my_optimizer, 5.0)
 
 # Configure the linear regression model with our feature columns and optimizer.
@@ -161,11 +167,31 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     """
 
     # Convert pandas data into a dict of np arrays.
+    # 将 features 从 pandas.DataFrame 转换为 NumPy 数组字典（Dictionary）
     features = {key: np.array(value) for key, value in dict(features).items()}
 
     # Construct a dataset, and configure batching/repeating.
+    # :w
+    # Dataset API是TensorFlow 1.3版本中引入的一个新的模块，主要服务于数据读取，构建输入数据的pipeline。
+    # 参考：https://zhuanlan.zhihu.com/p/30751039?from_voters_page=true
+    # Dataset.from_tensor_slices(tensor) - Creates a Dataset whose elements are slices of the given tensors.
     ds = Dataset.from_tensor_slices((features, targets))  # warning: 2GB limit
     ds = ds.batch(batch_size).repeat(num_epochs)
+
+    # 这里 x 是一个张量（tensor）
+    x = np.array([[[5, 10, 15, 30, 25], [20, 30, 65, 70, 90], [7, 80, 95, 20, 30]],
+                  [[3, 0, 5, 0, 45], [12, -2, 6, 7, 90], [18, -9, 95, 120, 30]],
+                  [[17, 13, 25, 30, 15], [23, 36, 9, 7, 80], [1, -7, -5, 22, 3]]])
+    # 测试代码：
+    # 将 dict 转换为 np.array
+    # 直接在 dict 中循环，循环的是 dict.keys()
+    y = {'Name': ['Zhang', 'Wang','Zhao','Li'], 'Age': [23,38,42,19]}
+    for key in y:
+        print(key)
+
+    # 循环 dict.values()，返回 key 对应的数值
+    for value in y.values():
+        val = value
 
     # tf.enable_eager_execution() # 不加这句话下面的程序会报错
     # dataset = Dataset.from_tensor_slices([1,2,3,4,5,6,7])
@@ -287,7 +313,8 @@ x_1 = sample["total_rooms"].max()
 
 # Retrieve the final weight and bias generated during training.
 # 这个weight可以用linear_regressor.get_variable_names()来取得
-weight = linear_regressor.get_variable_value('linear/linear_model/total_rooms/weights')[0]
+weight = linear_regressor.get_variable_value(
+    'linear/linear_model/total_rooms/weights')[0]
 bias = linear_regressor.get_variable_value('linear/linear_model/bias_weights')
 
 # Get the predicted median_house_values for the min and max total_rooms values.
