@@ -149,6 +149,34 @@ linear_regressor = tf.estimator.LinearRegressor(
 # 然后，如果 `shuffle` 设置为 `True`，则我们会对数据进行随机处理，以便数据在训练期间以随机方式传递到模型。`buffer_size` 参数会指定 `shuffle` 将从中随机抽样的数据集的大小。
 #
 # 最后，输入函数会为该数据集构建一个迭代器，并向 LinearRegressor 返回下一批数据。
+# %%
+# TEST CODE
+# Dataset 的形式
+# 一维数组
+dataset = Dataset.from_tensor_slices(np.array([1, 2, 3, 4, 5]))
+iterator = dataset._make_one_shot_iterator()
+one_element = iterator.get_next()
+sess = tf.Session()
+for i in range(5):
+    print(sess.run(one_element))
+
+# 二维数组
+A = np.random.uniform(size=(5, 2))
+dataset = Dataset.from_tensor_slices(np.random.uniform(size=(5, 2)))
+
+# 字典（dict）形式
+dataset = tf.data.Dataset.from_tensor_slices(
+    {
+        "a": np.array([1.0, 2.0, 3.0, 4.0, 5.0]),
+        "b": np.random.uniform(size=(5, 2))
+    }
+)
+
+# 元组（tuple）形式
+dataset = tf.data.Dataset.from_tensor_slices(
+  (np.array([1.0, 2.0, 3.0, 4.0, 5.0]), np.random.uniform(size=(5, 2)))
+)
+# TEST CODE END
 
 # %%
 
@@ -159,9 +187,9 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     Args:
       features: pandas DataFrame of features
       targets: pandas DataFrame of targets
-      batch_size: Size of batches to be passed to the model
+      batch_size: Size of batches to be passed to the model. 
       shuffle: True or False. Whether to shuffle the data.
-      num_epochs: Number of epochs for which data should be repeated. None = repeat indefinitely
+      num_epochs: Number of epochs for which data should be repeated. None = repeat indefinitely. 全部数据使用一次称为一个 epoch。
     Returns:
       Tuple of (features, labels) for next data batch
     """
@@ -175,9 +203,14 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     # Dataset API是TensorFlow 1.3版本中引入的一个新的模块，主要服务于数据读取，构建输入数据的pipeline。
     # 参考：https://zhuanlan.zhihu.com/p/30751039?from_voters_page=true
     # Dataset.from_tensor_slices(tensor) - Creates a Dataset whose elements are slices of the given tensors.
+
     ds = Dataset.from_tensor_slices((features, targets))  # warning: 2GB limit
+    # batch_size: 每次传送给模型的数据个数
+    # num_epochs: 所有数据使用一次称为一个 epoch
+    # 如：数据长度 = 1000，batch_size = 500，迭代次数 = 4，迭代4次为一个 epcho.
     ds = ds.batch(batch_size).repeat(num_epochs)
 
+    # TEST CODE
     # 这里 x 是一个张量（tensor）
     x = np.array([[[5, 10, 15, 30, 25], [20, 30, 65, 70, 90], [7, 80, 95, 20, 30]],
                   [[3, 0, 5, 0, 45], [12, -2, 6, 7, 90], [18, -9, 95, 120, 30]],
@@ -185,7 +218,7 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     # 测试代码：
     # 将 dict 转换为 np.array
     # 直接在 dict 中循环，循环的是 dict.keys()
-    y = {'Name': ['Zhang', 'Wang','Zhao','Li'], 'Age': [23,38,42,19]}
+    y = {'Name': ['Zhang', 'Wang', 'Zhao', 'Li'], 'Age': [23, 38, 42, 19]}
     for key in y:
         print(key)
 
@@ -203,18 +236,25 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     for k, v in features.items():
         print(k, v)
         # v.size == 17000
+    # TEST CODE END
 
     # Shuffle the data, if specified.
     if shuffle:
-        ds = ds.shuffle(buffer_size=10000)
+        ds = ds.shuffle(buffer_size=10000)  # 打乱后，数据长度变为10000
+        # https://www.tensorflow.org/versions/r1.14/api_docs/python/tf/data/Dataset#shuffle
+        # 该数据集使用buffer_size元素填充缓冲区，然后从该缓冲区中随机采样元素，用新元素替换选定的元素。 为了实现完美的改组，需要缓冲区大小大于或等于数据集的完整大小。
+        # 例如，如果您的数据集包含10,000个元素，但buffer_size设置为1,000，则shuffle最初将仅从缓冲区的前1,000个元素中选择一个随机元素。 选择一个元素后，其缓冲区中的空间将被下一个（即第1,001个）元素替换，并保留1,000个元素的缓冲区。
 
     # Return the next batch of data.
     # 每次只反馈一个值
     features, labels = ds.make_one_shot_iterator().get_next()
+    # https://www.tensorflow.org/versions/r1.14/api_docs/python/tf/data/Dataset#make_one_shot_iterator
 
+    # TEST CODE
     for k, v in (tf.Session().run(features)).items():
         print(k, v)
         # v.size == 1
+    # TEST CODE END
 
     return features, labels
 
