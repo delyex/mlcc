@@ -212,11 +212,11 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     # print(sess.run(labels)) # 返回数据第二行的 label，不是第一行的 label
     # 如果想返回第一行的 label，需要这样写：
     # print(sess.run((dsf, labels)))
-    
+
     # batch_size: 每次传送给模型的数据个数
     # num_epochs: 所有数据使用一次称为一个 epoch
     # 如：数据长度 = 1000，batch_size = 500，迭代次数 = 4，迭代4次为一个 epcho.
-    ds = ds.batch(batch_size).repeat(num_epochs)
+    ds = ds.batch(batch_size).repeat(num_epochs)  # num_epochs = None 表示无限次循环
 
     """
     # TEST CODE
@@ -258,6 +258,7 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     # labels 就是 targets
     features, labels = ds.make_one_shot_iterator().get_next()
     # https://www.tensorflow.org/versions/r1.14/api_docs/python/tf/data/Dataset#make_one_shot_iterator
+
     """
     # TEST CODE
     for k, v in (tf.Session().run(features)).items():
@@ -267,14 +268,13 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     """
     return features, labels
 
+
 # %% [markdown]
 #  **注意**：在后面的练习中，我们会继续使用此输入函数。有关输入函数和 `Dataset` API 的更详细的文档，请参阅 [TensorFlow 编程人员指南](https://www.tensorflow.org/programmers_guide/datasets)。
 # %% [markdown]
 #  ### 第 5 步：训练模型
 # %% [markdown]
 #  现在，我们可以在 `linear_regressor` 上调用 `train()` 来训练模型。我们会将 `my_input_fn` 封装在 `lambda` 中，以便可以将 `my_feature` 和 `target` 作为参数传入（有关详情，请参阅此 [TensorFlow 输入函数教程](https://www.tensorflow.org/get_started/input_fn#passing_input_fn_data_to_your_model)），首先，我们会训练 100 步。
-
-
 # %%
 _ = linear_regressor.train(
     input_fn=lambda: my_input_fn(my_feature, targets),
