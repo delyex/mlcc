@@ -203,11 +203,21 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     # 参考：https://zhuanlan.zhihu.com/p/30751039?from_voters_page=true
     # Dataset.from_tensor_slices(tensor) - Creates a Dataset whose elements are slices of the given tensors.
 
+    # 这里的 targets 就是 labels，即拟合目标
     ds = Dataset.from_tensor_slices((features, targets))  # warning: 2GB limit
+    # iterator = ds._make_one_shot_iterator()
+    # dsf, labels = iterator.get_next()
+    # sess = tf.Session()
+    # print(sess.run(dsf)) # 返回数据第一行的 feature
+    # print(sess.run(labels)) # 返回数据第二行的 label，不是第一行的 label
+    # 如果想返回第一行的 label，需要这样写：
+    # print(sess.run((dsf, labels)))
+    
     # batch_size: 每次传送给模型的数据个数
     # num_epochs: 所有数据使用一次称为一个 epoch
     # 如：数据长度 = 1000，batch_size = 500，迭代次数 = 4，迭代4次为一个 epcho.
     ds = ds.batch(batch_size).repeat(num_epochs)
+
     """
     # TEST CODE
     # 这里 x 是一个张量（tensor）
@@ -245,6 +255,7 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
 
     # Return the next batch of data.
     # 每次只反馈一个值
+    # labels 就是 targets
     features, labels = ds.make_one_shot_iterator().get_next()
     # https://www.tensorflow.org/versions/r1.14/api_docs/python/tf/data/Dataset#make_one_shot_iterator
     """
